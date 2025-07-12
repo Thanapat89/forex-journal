@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกการเทรดของฉัน</title>
+    <!-- PWA: Link to manifest.json (ไฟล์ Manifest สำหรับ Progressive Web App) -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- PWA: Theme color for browser UI (สีธีมสำหรับ UI ของเบราว์เซอร์) -->
+    <meta name="theme-color" content="#2563EB">
+
+    <!-- Tailwind CSS CDN (สำหรับจัดสไตล์) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font (สำหรับฟอนต์) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* สไตล์พื้นฐานสำหรับ Body */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* สีเทาอ่อน */
+            margin: 0;
+            padding: 0;
+        }
+        /* สไตล์สำหรับ Container หลักของแอป */
+        .container {
+            max-width: 960px; /* ความกว้างสูงสุด */
+            margin-left: auto;
+            margin-right: auto;
+            padding: 1rem; /* ระยะห่างภายใน */
+        }
+        /* สไตล์สำหรับกล่องข้อความแจ้งเตือน */
+        .message-box {
+            position: fixed; /* ตำแหน่งคงที่บนหน้าจอ */
+            bottom: 1rem; /* ห่างจากขอบล่าง 1rem */
+            left: 50%; /* อยู่กึ่งกลางแนวนอน */
+            transform: translateX(-50%); /* เลื่อนกลับครึ่งหนึ่งของความกว้างเพื่อจัดกึ่งกลางจริง */
+            padding: 0.75rem 1.5rem; /* ระยะห่างภายใน */
+            border-radius: 0.5rem; /* มุมโค้งมน */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* เงา */
+            z-index: 1000; /* อยู่ด้านบนสุด */
+            display: none; /* ซ่อนไว้เป็นค่าเริ่มต้น */
+        }
+        /* สไตล์สำหรับกล่องข้อความแจ้งเตือนแบบสำเร็จ */
+        .message-box.success {
+            background-color: #10B981; /* สีเขียว */
+            color: white;
+        }
+        /* สไตล์สำหรับกล่องข้อความแจ้งเตือนแบบข้อผิดพลาด */
+        .message-box.error {
+            background-color: #EF4444; /* สีแดง */
+            color: white;
+        }
+        /* สไตล์สำหรับปุ่มแท็บนำทาง */
+        .tab-button {
+            padding: 0.75rem 1.5rem; /* px-6 py-3 */
+            border-radius: 9999px; /* rounded-full */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            transition: all 0.3s ease-in-out; /* การเปลี่ยนผ่านที่ราบรื่น */
+            transform: scale(1); /* ขนาดเริ่มต้น */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24); /* เงา */
+        }
+        /* สไตล์สำหรับปุ่มแท็บที่กำลัง Active (ถูกเลือกอยู่) */
+        .tab-button.active {
+            background-color: #2563EB; /* สีน้ำเงินเข้ม */
+            color: white;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05); /* เงาที่ใหญ่ขึ้น */
+            transform: scale(1.05); /* ขยายเล็กน้อย */
+        }
+        /* สไตล์สำหรับปุ่มแท็บที่ไม่ได้ Active */
+        .tab-button:not(.active) {
+            background-color: white;
+            color: #1D4ED8; /* สีน้ำเงิน */
+        }
+        /* สไตล์สำหรับปุ่มแท็บที่ไม่ได้ Active เมื่อเมาส์ชี้ */
+        .tab-button:not(.active):hover {
+            background-color: #EFF6FF; /* สีน้ำเงินอ่อน */
+            color: #1E40AF; /* สีน้ำเงินเข้มขึ้น */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); /* เงาเมื่อเมาส์ชี้ */
+        }
+    </style>
+</head>
+<body>
+    <div class="container min-h-screen">
+        <!-- ส่วนหัวของแอปพลิเคชัน -->
+        <header class="bg-blue-700 text-white p-4 rounded-xl shadow-md mb-6">
+            <h1 class="text-3xl font-bold text-center">
+                <span role="img" aria-label="chart with upwards trend" class="mr-2">📈</span>
+                บันทึกการเทรดของฉัน
+                <span role="img" aria-label="money bag" class="ml-2">💰</span>
+            </h1>
+            <!-- แสดง User ID สำหรับการระบุตัวตน/ดีบัก -->
+            <p id="user-id-display" class="text-center text-sm mt-2 hidden">
+                รหัสผู้ใช้: <span class="font-mono bg-blue-800 px-2 py-1 rounded-md text-xs" id="current-user-id"></span>
+            </p>
+        </header>
+
+        <!-- แถบนำทาง (Navigation) -->
+        <nav class="flex justify-center space-x-4 mb-6 flex-wrap">
+            <button id="add-trade-btn" class="tab-button active mb-2">
+                เพิ่มเทรด
+            </button>
+            <button id="list-trades-btn" class="tab-button mb-2">
+                รายการเทรด
+            </button>
+            <button id="summary-btn" class="tab-button mb-2">
+                สรุปรายเดือน
+            </button>
+            <button id="export-csv-btn" class="tab-button bg-purple-600 text-white hover:bg-purple-700 mb-2">
+                ส่งออกข้อมูล (CSV)
+            </button>
+        </nav>
+
+        <!-- พื้นที่แสดงเนื้อหาหลักของแอป -->
+        <main id="app-content">
+            <!-- เนื้อหาจะถูกโหลดที่นี่โดย JavaScript -->
+        </main>
+
+        <!-- กล่องข้อความแจ้งเตือนส่วนกลาง (สำหรับแสดงข้อความสำเร็จ/ผิดพลาด) -->
+        <div id="app-message-box" class="message-box"></div>
+    </div>
+
+    <!-- Firebase SDKs (ไลบรารี Firebase) -->
+    <script type="module">
+        // Import โมดูล Firebase ที่จำเป็น
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ตัวแปร Global สำหรับ Firebase และข้อมูลการเทรด
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let trades = []; // Array สำหรับเก็บข้อมูลการเทรดทั้งหมด
+
+        // อ้างอิงถึง Element ต่างๆ ใน HTML
+        const appContent = document.getElementById('app-content');
+        const addTradeBtn = document.getElementById('add-trade-btn');
+        const listTradesBtn = document.getElementById('list-trades-btn');
+        const summaryBtn = document.getElementById('summary-btn');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const currentUserIdSpan = document.getElementById('current-user-id');
+        const messageBox = document.getElementById('app-message-box');
+
+        // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือนแบบกำหนดเอง
+        function showMessage(message, type = 'success') {
+            if (messageBox) {
+                messageBox.innerText = message;
+                messageBox.classList.remove('hidden', 'success', 'error'); // ลบ class เก่าออก
+                messageBox.classList.add(type); // เพิ่ม class ตามประเภทข้อความ (success/error)
+                setTimeout(() => {
+                    messageBox.classList.add('hidden'); // ซ่อนกล่องข้อความหลังจาก 3 วินาที
+                }, 3000);
+            }
+        }
+
+        // --- การเริ่มต้น Firebase ---
+        async function initializeFirebase() {
+            try {
+                let firebaseConfig = {};
+                // พยายาม parse Firebase configuration จากตัวแปร __firebase_config อย่างปลอดภัย
+                try {
+                    if (typeof __firebase_config === 'string' && __firebase_config) {
+                        firebaseConfig = JSON.parse(__firebase_config);
+                    } else {
+                        throw new Error("ตัวแปร Firebase configuration ไม่ใช่ string ที่ถูกต้องหรือว่างเปล่า");
+                    }
+                } catch (parseError) {
+                    throw new Error(`ข้อผิดพลาดในการ parse Firebase config: ${parseError.message}`);
+                }
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration ว่างเปล่าหลังจาก parse");
+                }
+
+                // เริ่มต้น Firebase App
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app); // ได้ Instance ของ Firestore
+                auth = getAuth(app); // ได้ Instance ของ Authentication
+
+                let initialAuthToken = null;
+                // ตรวจสอบ __initial_auth_token อย่างปลอดภัย
+                if (typeof __initial_auth_token === 'string' && __initial_auth_token) {
+                    initialAuthToken = __initial_auth_token;
+                }
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // ตั้งค่า Listener สำหรับการเปลี่ยนแปลงสถานะการยืนยันตัวตน
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid; // ตั้งค่า user ID หากมีการยืนยันตัวตนแล้ว
+                    } else {
+                        // สำรองสำหรับผู้ใช้ที่ไม่ได้ยืนยันตัวตน: สร้าง UUID สุ่ม หรือ ID ที่อิงตามเวลา
+                        userId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `anon-${Date.now()}`;
+                    }
+                    if (currentUserIdSpan) {
+                        currentUserIdSpan.innerText = userId; // แสดง User ID บน UI
+                        userIdDisplay.classList.remove('hidden'); // แสดงส่วน User ID
+                    }
+                    fetchTrades(); // เริ่มดึงข้อมูลการเทรดเมื่อยืนยันตัวตนแล้ว
+                    renderView('add'); // แสดงมุมมองเริ่มต้น (เพิ่มเทรด) หลังจากยืนยันตัวตน
+                });
+
+                console.log("Firebase initialized successfully.");
+            } catch (e) {
+                console.error("ข้อผิดพลาดในการเริ่มต้น Firebase หรือการยืนยันตัวตน:", e);
+                showMessage(`เกิดข้อผิดพลาดในการเริ่มต้นแอป: ${e.message}`, 'error');
+                // แสดงข้อความผิดพลาดบนหน้าจอหากเกิดข้อผิดพลาดร้ายแรง
+                appContent.innerHTML = `<div class="text-center text-red-700 p-4 rounded-lg bg-red-100">
+                                            เกิดข้อผิดพลาดร้ายแรงในการโหลดแอป: ${e.message}<br>
+                                            โปรดตรวจสอบ Console ของเบราว์เซอร์สำหรับรายละเอียดเพิ่มเติม
+                                        </div>`;
+            }
+        }
+
+        // --- ดึงข้อมูลการเทรดจาก Firestore ---
+        function fetchTrades() {
+            if (!db || !userId) {
+                console.log("Firestore DB หรือ User ID ยังไม่พร้อมใช้งานสำหรับการดึงข้อมูลการเทรด");
+                return;
+            }
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // สร้าง Path ของ Collection ใน Firestore สำหรับข้อมูลส่วนตัวของผู้ใช้
+            const tradesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/trades`);
+            // สร้าง Query เพื่อเรียงลำดับการเทรดตาม timestamp จากล่าสุดไปเก่าสุด
+            const q = query(tradesCollectionRef, orderBy('timestamp', 'desc'));
+
+            // ตั้งค่า Listener แบบเรียลไทม์โดยใช้ onSnapshot
+            onSnapshot(q, (snapshot) => {
+                trades = snapshot.docs.map(doc => ({
+                    id: doc.id, // ID ของเอกสารจาก Firestore
+                    ...doc.data(), // ข้อมูลอื่นๆ ทั้งหมดของเอกสาร
+                    // แปลง Firestore Timestamp เป็น JavaScript Date object เพื่อการแสดงผลที่ถูกต้อง
+                    timestamp: doc.data().timestamp ? doc.data().timestamp : new Date(),
+                }));
+                // Render มุมมองปัจจุบันอีกครั้งเพื่อแสดงข้อมูลการเทรดที่อัปเดต
+                renderView(currentView);
+            }, (error) => {
+                console.error("ข้อผิดพลาดในการดึงข้อมูลการเทรด:", error);
+                showMessage(`ข้อผิดพลาดในการดึงข้อมูล: ${error.message}`, 'error');
+            });
+        }
+
+        // --- ฟังก์ชันสำหรับ Render แต่ละมุมมอง (หน้าจอ) ---
+
+        function renderAddTradeForm() {
+            appContent.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-lg mb-6 max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">เพิ่มบันทึกการเทรดใหม่</h2>
+                    <form id="trade-form" class="space-y-4">
+                        <div>
+                            <label for="tradeDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                วันที่และเวลาเทรด:
+                            </label>
+                            <input type="datetime-local" id="tradeDate"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                required>
+                        </div>
+                        <div>
+                            <label for="symbol" class="block text-sm font-medium text-gray-700 mb-1">
+                                คู่เทรด/สัญลักษณ์:
+                            </label>
+                            <input type="text" id="symbol"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="เช่น BTC/USD, EUR/USD" required>
+                        </div>
+                        <div>
+                            <label for="direction" class="block text-sm font-medium text-gray-700 mb-1">
+                                ทิศทาง:
+                            </label>
+                            <select id="direction"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="Buy">ซื้อ (Buy)</option>
+                                <option value="Sell">ขาย (Sell)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="entryPrice" class="block text-sm font-medium text-gray-700 mb-1">
+                                    ราคาเข้า (pt):
+                                </label>
+                                <input type="number" id="entryPrice"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    step="0.01" required>
+                            </div>
+                            <div>
+                                <label for="stopLoss" class="block text-sm font-medium text-gray-700 mb-1">
+                                    จุดตัดขาดทุน (sl):
+                                </label>
+                                <input type="number" id="stopLoss"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    step="0.01" required>
+                            </div>
+                            <div>
+                                <label for="takeProfit" class="block text-sm font-medium text-gray-700 mb-1">
+                                    จุดทำกำไร (TP):
+                                    </label>
+                                <input type="number" id="takeProfit"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    step="0.01">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="result" class="block text-sm font-medium text-gray-700 mb-1">
+                                    ผลลัพธ์:
+                                </label>
+                                <select id="result"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    required>
+                                    <option value="">เลือกผลลัพธ์</option>
+                                    <option value="Win">ชนะ (Win)</option>
+                                    <option value="Loss">แพ้ (Loss)</option>
+                                    <option value="Break Even">เท่าทุน (Break Even)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="profitLoss" class="block text-sm font-medium text-gray-700 mb-1">
+                                    กำไร/ขาดทุน (จำนวน):
+                                </label>
+                                <input type="number" id="profitLoss"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    step="0.01" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                                บันทึก/หมายเหตุ:
+                            </label>
+                            <textarea id="notes" rows="4"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="จดบันทึกรายละเอียดการเทรด, เหตุผลในการเข้า/ออก, บทเรียนที่ได้"></textarea>
+                        </div>
+                        <div>
+                            <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">
+                                URL รูปกราฟ (ถ้ามี):
+                            </label>
+                            <input type="url" id="imageUrl"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="วาง URL รูปภาพกราฟของคุณที่นี่">
+                            <!-- ส่วนแสดงตัวอย่างรูปภาพ -->
+                            <div id="image-preview-container" class="mt-2 hidden">
+                                <p class="text-sm text-gray-600 mb-1">ตัวอย่างรูปภาพ:</p>
+                                <img id="image-preview" src="" alt="ตัวอย่างรูปภาพกราฟ" class="w-full h-auto max-h-64 object-contain rounded-md border border-gray-300"
+                                    onerror="this.style.display='none'; document.getElementById('image-preview-error').classList.remove('hidden');"
+                                    onload="this.style.display='block'; document.getElementById('image-preview-error').classList.add('hidden');">
+                                <p id="image-preview-error" class="text-red-500 text-sm mt-1 hidden">ไม่สามารถโหลดรูปภาพได้ กรุณาตรวจสอบ URL</p>
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            บันทึกการเทรด
+                        </button>
+                    </form>
+                </div>
+            `;
+            // กำหนดวันที่/เวลาปัจจุบันให้กับช่อง input
+            document.getElementById('tradeDate').value = new Date().toISOString().slice(0, 16);
+
+            // อ้างอิงถึง Element สำหรับ Image Preview
+            const imageUrlInput = document.getElementById('imageUrl');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const imagePreviewError = document.getElementById('image-preview-error');
+
+            // เพิ่ม Event Listener เมื่อมีการพิมพ์ในช่อง URL รูปภาพ
+            imageUrlInput.addEventListener('input', () => {
+                const url = imageUrlInput.value.trim();
+                if (url) {
+                    imagePreviewContainer.classList.remove('hidden'); // แสดง container
+                    imagePreview.src = url; // กำหนด src ของรูปภาพ
+                    imagePreview.style.display = 'block'; // ตรวจสอบให้แน่ใจว่ารูปภาพแสดงอยู่
+                    imagePreviewError.classList.add('hidden'); // ซ่อนข้อผิดพลาดเริ่มต้น
+                } else {
+                    imagePreviewContainer.classList.add('hidden'); // ซ่อน container ถ้า URL ว่างเปล่า
+                    imagePreview.src = ''; // ล้าง src รูปภาพ
+                    imagePreviewError.classList.add('hidden'); // ซ่อนข้อผิดพลาด
+                }
+            });
+
+            // เพิ่ม Event Listener สำหรับการส่งฟอร์ม
+            document.getElementById('trade-form').addEventListener('submit', handleAddTrade);
+        }
+
+        // ฟังก์ชันสำหรับจัดการการเพิ่มข้อมูลการเทรด
+        async function handleAddTrade(e) {
+            e.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+            if (!db || !userId) {
+                console.error("Firestore DB หรือ User ID ไม่พร้อมใช้งานสำหรับการเพิ่มการเทรด");
+                showMessage('ไม่สามารถบันทึกข้อมูลได้: ไม่พบฐานข้อมูลหรือรหัสผู้ใช้', 'error');
+                return;
+            }
+
+            // ดึงค่าจากฟอร์ม
+            const tradeDate = document.getElementById('tradeDate').value;
+            const symbol = document.getElementById('symbol').value;
+            const direction = document.getElementById('direction').value;
+            const entryPrice = document.getElementById('entryPrice').value;
+            const stopLoss = document.getElementById('stopLoss').value;
+            const takeProfit = document.getElementById('takeProfit').value;
+            const result = document.getElementById('result').value;
+            const profitLoss = document.getElementById('profitLoss').value;
+            const notes = document.getElementById('notes').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+
+            // ตรวจสอบข้อมูลที่จำเป็น
+            if (!symbol || !entryPrice || !stopLoss || !result || !profitLoss || !tradeDate) {
+                showMessage('กรุณากรอกข้อมูลที่จำเป็นทั้งหมด', 'error');
+                return;
+            }
+
+            // สร้าง Object สำหรับข้อมูลการเทรดใหม่
+            const newTrade = {
+                symbol,
+                direction,
+                entryPrice: parseFloat(entryPrice),
+                stopLoss: parseFloat(stopLoss),
+                takeProfit: takeProfit ? parseFloat(takeProfit) : null, // เก็บเป็น null หากไม่มี TP
+                result,
+                profitLoss: parseFloat(profitLoss),
+                notes,
+                imageUrl,
+                timestamp: new Date(tradeDate), // แปลง string เป็น Date object
+                createdAt: serverTimestamp(), // ใช้ Server Timestamp ของ Firestore
+            };
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            try {
+                // เพิ่มเอกสารใหม่ไปยัง Firestore
+                await addDoc(collection(db, `artifacts/${appId}/users/${userId}/trades`), newTrade);
+                showMessage('บันทึกการเทรดสำเร็จ!', 'success');
+                // ล้างฟอร์ม
+                document.getElementById('tradeDate').value = new Date().toISOString().slice(0, 16);
+                document.getElementById('symbol').value = '';
+                document.getElementById('direction').value = 'Buy';
+                document.getElementById('entryPrice').value = '';
+                document.getElementById('stopLoss').value = '';
+                document.getElementById('takeProfit').value = '';
+                document.getElementById('result').value = '';
+                document.getElementById('profitLoss').value = '';
+                document.getElementById('notes').value = '';
+                document.getElementById('imageUrl').value = '';
+                // ซ่อน Image Preview หลังจากล้างฟอร์ม
+                document.getElementById('image-preview-container').classList.add('hidden');
+                document.getElementById('image-preview').src = '';
+
+                renderView('list'); // เปลี่ยนไปที่มุมมองรายการหลังจากการเพิ่มสำเร็จ
+            } catch (e) {
+                console.error("ข้อผิดพลาดในการบันทึกการเทรด: ", e);
+                showMessage(`เกิดข้อผิดพลาดในการบันทึกการเทรด: ${e.message}`, 'error');
+            }
+        }
+
+        function renderTradeList() {
+            if (trades.length === 0) {
+                appContent.innerHTML = `
+                    <div class="text-center text-gray-600 p-4">
+                        ยังไม่มีบันทึกการเทรด โปรดเพิ่มรายการใหม่
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="space-y-4 max-w-4xl mx-auto">';
+            trades.forEach(trade => {
+                // จัดรูปแบบวันที่
+                const tradeDate = trade.timestamp && trade.timestamp.seconds ? new Date(trade.timestamp.seconds * 1000).toLocaleString('th-TH') : 'N/A';
+                // กำหนด Class สำหรับสีผลลัพธ์
+                const resultClass = trade.result === 'Win' ? 'bg-green-100 text-green-800' :
+                                    trade.result === 'Loss' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800';
+                // กำหนด Class สำหรับสี กำไร/ขาดทุน
+                const profitLossClass = trade.profitLoss >= 0 ? 'text-green-700' : 'text-red-700';
+
+                html += `
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xl font-bold text-gray-900">
+                                ${trade.symbol} - ${trade.direction === 'Buy' ? 'ซื้อ' : 'ขาย'}
+                            </h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold ${resultClass}">
+                                ${trade.result === 'Win' ? 'ชนะ' : trade.result === 'Loss' ? 'แพ้' : 'เท่าทุน'}
+                            </span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-2">
+                            วันที่: ${tradeDate}
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-gray-700 text-sm mb-3">
+                            <p><strong>ราคาเข้า (pt):</strong> ${trade.entryPrice}</p>
+                            <p><strong>SL:</strong> ${trade.stopLoss}</p>
+                            ${trade.takeProfit ? `<p><strong>TP:</strong> ${trade.takeProfit}</p>` : ''}
+                            <p class="font-semibold ${profitLossClass}">
+                                <strong>กำไร/ขาดทุน:</strong> ${trade.profitLoss.toFixed(2)}
+                            </p>
+                        </div>
+                        ${trade.notes ? `
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                                <p class="text-sm font-medium text-gray-800 mb-1">บันทึก:</p>
+                                <p class="text-gray-700 text-sm whitespace-pre-wrap">${trade.notes}</p>
+                            </div>
+                        ` : ''}
+                        ${trade.imageUrl ? `
+                            <div class="mt-4">
+                                <img src="${trade.imageUrl}" alt="กราฟการเทรด"
+                                    class="w-full h-auto rounded-lg shadow-md object-cover"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/cccccc/333333?text=ไม่พบรูปภาพ';">
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            appContent.innerHTML = html;
+        }
+
+        // ฟังก์ชันสำหรับ Render สรุปรายเดือน
+        function renderMonthlySummary() {
+            // ฟังก์ชันย่อยสำหรับสรุปข้อมูลการเทรด
+            const summarizeTrades = (tradesToSummarize) => {
+                const summary = {};
+                tradesToSummarize.forEach(trade => {
+                    if (!trade.timestamp || !trade.timestamp.seconds) {
+                        return;
+                    }
+                    const date = new Date(trade.timestamp.seconds * 1000);
+                    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                    if (!summary[monthYear]) {
+                        summary[monthYear] = {
+                            totalPL: 0,
+                            totalWin: 0,
+                            totalLoss: 0,
+                            totalBreakEven: 0,
+                            tradeCount: 0,
+                        };
+                    }
+                    summary[monthYear].totalPL += trade.profitLoss;
+                    summary[monthYear].tradeCount++;
+                    if (trade.result === 'Win') {
+                        summary[monthYear].totalWin++;
+                    } else if (trade.result === 'Loss') {
+                        summary[monthYear].totalLoss++;
+                    } else {
+                        summary[monthYear].totalBreakEven++;
+                    }
+                });
+                for (const month in summary) {
+                    const { totalWin, tradeCount } = summary[month];
+                    summary[month].winRate = tradeCount > 0 ? ((totalWin / tradeCount) * 100).toFixed(2) : 0;
+                }
+                return summary;
+            };
+
+            const tradeSummary = summarizeTrades(trades);
+            const availableMonths = Object.keys(tradeSummary).sort().reverse(); // เดือนที่มีข้อมูล เรียงจากใหม่ไปเก่า
+            let selectedMonth = availableMonths.length > 0 ? availableMonths[0] : ''; // เลือกเดือนล่าสุดเป็นค่าเริ่มต้น
+
+            let html = `
+                <div class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">สรุปผลรายเดือน</h2>
+                    <div class="mb-6">
+                        <label for="monthSelect" class="block text-sm font-medium text-gray-700 mb-1">
+                            เลือกเดือน:
+                        </label>
+                        <select id="monthSelect"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            ${availableMonths.length > 0 ?
+                                availableMonths.map(month => `<option value="${month}">${new Date(month).toLocaleString('th-TH', { month: 'long', year: 'numeric' })}</option>`).join('')
+                                : '<option value="">ไม่มีข้อมูล</option>'
+                            }
+                        </select>
+                    </div>
+                    <div id="monthly-summary-details"></div>
+                </div>
+            `;
+            appContent.innerHTML = html;
+
+            const monthSelect = document.getElementById('monthSelect');
+            const monthlySummaryDetails = document.getElementById('monthly-summary-details');
+
+            // ฟังก์ชันสำหรับอัปเดตการแสดงผลสรุป
+            const updateSummaryDisplay = () => {
+                const currentMonth = monthSelect.value;
+                const currentSummary = tradeSummary[currentMonth] || {
+                    totalPL: 0, totalWin: 0, totalLoss: 0, totalBreakEven: 0, tradeCount: 0, winRate: 0,
+                };
+
+                if (currentMonth && availableMonths.includes(currentMonth)) {
+                    monthlySummaryDetails.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <p class="text-lg font-semibold text-blue-800 mb-2">
+                                    สรุปสำหรับ ${new Date(currentMonth).toLocaleString('th-TH', { month: 'long', year: 'numeric' })}:
+                                </p>
+                                <p class="text-xl font-bold ${currentSummary.totalPL >= 0 ? 'text-green-700' : 'text-red-700'}">
+                                    กำไร/ขาดทุนรวม: ${currentSummary.totalPL.toFixed(2)}
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                                    <p class="text-sm text-gray-600">จำนวนเทรดทั้งหมด</p>
+                                    <p class="text-2xl font-bold text-gray-800">${currentSummary.tradeCount}</p>
+                                </div>
+                                <div class="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
+                                    <p class="text-sm text-green-600">ชนะ</p>
+                                    <p class="text-2xl font-bold text-green-800">${currentSummary.totalWin}</p>
+                                </div>
+                                <div class="bg-red-50 p-4 rounded-lg border border-red-200 text-center">
+                                    <p class="text-sm text-red-600">แพ้</p>
+                                    <p class="text-2xl font-bold text-red-800">${currentSummary.totalLoss}</p>
+                                </div>
+                                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-center">
+                                    <p class="text-sm text-yellow-600">เท่าทุน</p>
+                                    <p class="text-2xl font-bold text-yellow-800">${currentSummary.totalBreakEven}</p>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center col-span-full sm:col-span-1">
+                                    <p class="text-sm text-purple-600">อัตราการชนะ</p>
+                                    <p class="text-2xl font-bold text-purple-800">${currentSummary.winRate}%</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    monthlySummaryDetails.innerHTML = `
+                        <div class="text-center text-gray-600 p-4">
+                            ไม่มีข้อมูลการเทรดสำหรับเดือนที่เลือก
+                        </div>
+                    `;
+                }
+            };
+            
+            monthSelect.value = selectedMonth; // กำหนดค่าเริ่มต้นให้กับ dropdown
+            updateSummaryDisplay(); // แสดงสรุปเริ่มต้น
+
+            monthSelect.addEventListener('change', updateSummaryDisplay); // เพิ่ม Event Listener เมื่อเลือกเดือนเปลี่ยน
+        }
+
+        // --- ส่งออกข้อมูลการเทรดเป็น CSV ---
+        function exportTradesToCsv() {
+            if (trades.length === 0) {
+                showMessage('ไม่มีข้อมูลการเทรดให้ออก', 'error');
+                return;
+            }
+
+            // กำหนด Header ของไฟล์ CSV
+            const headers = ["วันที่และเวลาเทรด", "คู่เทรด/สัญลักษณ์", "ทิศทาง", "ราคาเข้า (pt)", "จุดตัดขาดทุน (sl)", "จุดทำกำไร (TP)", "ผลลัพธ์", "กำไร/ขาดทุน (จำนวน)", "บันทึก/หมายเหตุ", "URL รูปกราฟ"];
+            const csvRows = [];
+            // เพิ่ม Header ลงใน CSV
+            csvRows.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',')); // จัดการเครื่องหมายคำพูดใน Header
+
+            // วนลูปข้อมูลการเทรดแต่ละรายการเพื่อสร้างแถว CSV
+            trades.forEach(trade => {
+                const row = [
+                    trade.timestamp && trade.timestamp.seconds ? new Date(trade.timestamp.seconds * 1000).toLocaleString('th-TH') : '',
+                    `"${String(trade.symbol || '').replace(/"/g, '""')}"`, // จัดการเครื่องหมายคำพูดและแปลงเป็น String
+                    `"${String(trade.direction || '').replace(/"/g, '""')}"`,
+                    trade.entryPrice || '',
+                    trade.stopLoss || '',
+                    trade.takeProfit || '',
+                    `"${String(trade.result || '').replace(/"/g, '""')}"`,
+                    trade.profitLoss || '',
+                    `"${String(trade.notes || '').replace(/"/g, '""').replace(/\n/g, '\\n')}"`, // จัดการเครื่องหมายคำพูดและขึ้นบรรทัดใหม่
+                    `"${String(trade.imageUrl || '').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(row.join(',')); // รวมข้อมูลในแถวด้วยเครื่องหมายคอมม่า
+            });
+
+            const csvString = csvRows.join('\n'); // รวมแถวทั้งหมดด้วยการขึ้นบรรทัดใหม่
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' }); // สร้าง Blob จาก String CSV
+            const link = document.createElement('a'); // สร้าง Element <a> สำหรับดาวน์โหลด
+            link.href = URL.createObjectURL(blob); // กำหนด URL สำหรับ Blob
+            link.download = `trading_journal_${new Date().toISOString().slice(0, 10)}.csv`; // กำหนดชื่อไฟล์
+            document.body.appendChild(link); // เพิ่ม Link เข้าไปใน Body
+            link.click(); // คลิก Link เพื่อเริ่มดาวน์โหลด
+            document.body.removeChild(link); // ลบ Link ออกจาก Body
+            showMessage('ส่งออกข้อมูลสำเร็จ!', 'success');
+        }
+
+        // ตัวแปรสำหรับเก็บมุมมองปัจจุบัน
+        let currentView = 'add'; // มุมมองเริ่มต้นคือ 'เพิ่มเทรด'
+
+        // ฟังก์ชันสำหรับ Render มุมมองตามชื่อที่ระบุ
+        function renderView(viewName) {
+            currentView = viewName; // อัปเดตมุมมองปัจจุบัน
+            // ลบ Class 'active' ออกจากปุ่มทั้งหมด
+            addTradeBtn.classList.remove('active');
+            listTradesBtn.classList.remove('active');
+            summaryBtn.classList.remove('active');
+            exportCsvBtn.classList.remove('active');
+
+            // Render มุมมองที่เลือกและเพิ่ม Class 'active' ให้กับปุ่มที่เกี่ยวข้อง
+            if (viewName === 'add') {
+                renderAddTradeForm();
+                addTradeBtn.classList.add('active');
+            } else if (viewName === 'list') {
+                renderTradeList();
+                listTradesBtn.classList.add('active');
+            } else if (viewName === 'summary') {
+                renderMonthlySummary();
+                summaryBtn.classList.add('active');
+            } else if (viewName === 'export') {
+                // สำหรับการส่งออก เพียงแค่เรียกใช้ฟังก์ชันและคงมุมมองปัจจุบันไว้
+                exportTradesToCsv();
+                // ไม่จำเป็นต้องตั้งค่า active สำหรับปุ่ม export เนื่องจากเป็น Action
+            }
+        }
+
+        // Event Listeners สำหรับปุ่มนำทาง
+        addTradeBtn.addEventListener('click', () => renderView('add'));
+        listTradesBtn.addEventListener('click', () => renderView('list'));
+        summaryBtn.addEventListener('click', () => renderView('summary'));
+        exportCsvBtn.addEventListener('click', () => renderView('export'));
+
+        // PWA: ลงทะเบียน Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered! Scope:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.error('Service Worker registration failed:', err);
+                    });
+            });
+        }
+
+        // เริ่มต้น Firebase เมื่อหน้าต่างโหลดเสร็จสมบูรณ์
+        window.onload = initializeFirebase;
+    </script>
+</body>
+</html>
